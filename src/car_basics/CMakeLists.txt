@@ -8,8 +8,19 @@ project(car_basics)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  actionlib_msgs
+  geometry_msgs
+  message_generation
+  nav_msgs
+  nav_msgs
   roscpp
+  serial
+  roslib
   rospy
+  sensor_msgs
+  std_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -115,9 +126,20 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
 )
+
+include_directories(include/${PROJECT_NAME})
+
+add_executable(wheeltec_robot_node src/wheeltec_robot.cpp src/Quaternion_Solution.cpp)
+target_link_libraries(wheeltec_robot_node ${catkin_LIBRARIES})
+
+add_executable(odom_from_tf_node src/odom_from_tf.cpp )
+target_link_libraries(odom_from_tf_node ${catkin_LIBRARIES})
+
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
