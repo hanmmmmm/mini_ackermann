@@ -7,8 +7,9 @@
     map_builder = MAP_BUILDER,
     trajectory_builder = TRAJECTORY_BUILDER,
     map_frame = "map",
-    tracking_frame = "gyro_link", -- this should be the link of IMU 
+    tracking_frame = "gyro_link", -- this should be the link of IMU gyro_link
     published_frame = "odom_combined", -- use base_link while playing rosbag
+    
     odom_frame = "odom_combined",
     provide_odom_frame = false,
     publish_frame_projected_to_2d = false, 
@@ -26,7 +27,7 @@
     pose_publish_period_sec = 5e-3,     
     trajectory_publish_period_sec = 30e-3, 
     rangefinder_sampling_ratio = 1.,
-    odometry_sampling_ratio = 0.1, -- pay attention to this if above parameters are set properly but still have error related to absence of fixed frame map
+    odometry_sampling_ratio = 1., --0.1, -- pay attention to this if above parameters are set properly but still have error related to absence of fixed frame map
     fixed_frame_pose_sampling_ratio = 1., 
     imu_sampling_ratio = 1.,
     landmarks_sampling_ratio = 1.,
