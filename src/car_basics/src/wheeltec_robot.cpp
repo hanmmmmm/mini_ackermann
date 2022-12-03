@@ -137,7 +137,7 @@ void turn_on_robot::Publish_Odom()
     odom.header.frame_id = odom_frame_id; // Odometer TF parent coordinates //里程计TF父坐标
     odom.pose.pose.position.x = Robot_Pos.X; //Position //位置
     odom.pose.pose.position.y = Robot_Pos.Y;
-    odom.pose.pose.position.z = Robot_Pos.Z;
+    odom.pose.pose.position.z = 0.0 ; //Robot_Pos.Z;
     odom.pose.pose.orientation = odom_quat; //Posture, Quaternion converted by Z-axis rotation //姿态，通过Z轴转角转换的四元数
 
     odom.child_frame_id = robot_frame_id; // Odometer TF subcoordinates //里程计TF子坐标
@@ -158,6 +158,19 @@ void turn_on_robot::Publish_Odom()
       memcpy(&odom.pose.covariance, odom_pose_covariance, sizeof(odom_pose_covariance)),
       memcpy(&odom.twist.covariance, odom_twist_covariance, sizeof(odom_twist_covariance));       
     odom_publisher.publish(odom); //Pub odometer topic //发布里程计话题
+
+    if (pub_odom_to_base_tf == true){
+      static tf::TransformBroadcaster br;
+      tf::Transform tf;
+      geometry_msgs::Pose odom_pose = odom.pose.pose;
+      tf::poseMsgToTF(odom_pose, tf);
+
+      tf::StampedTransform stamped_tf(tf, odom.header.stamp, odom_frame_id, robot_frame_id);
+
+      br.sendTransform(stamped_tf);
+    }
+
+
 }
 /**************************************
 Date: January 28, 2021
@@ -474,6 +487,7 @@ turn_on_robot::turn_on_robot():Sampling_Time(0),Power_voltage(0)
   private_nh.param<std::string>("odom_frame_id",    odom_frame_id,    "odom_combined");      //The odometer topic corresponds to the parent TF coordinate //里程计话题对应父TF坐标
   private_nh.param<std::string>("robot_frame_id",   robot_frame_id,   "base_footprint"); //The odometer topic corresponds to sub-TF coordinates //里程计话题对应子TF坐标
   private_nh.param<std::string>("gyro_frame_id",    gyro_frame_id,    "gyro_link"); //IMU topics correspond to TF coordinates //IMU话题对应TF坐标
+  private_nh.param<bool>    ("pub_odom_base_tf",    pub_odom_to_base_tf,    true); //IMU topics correspond to TF coordinates //IMU话题对应TF坐标
 
   voltage_publisher = n.advertise<std_msgs::Float32>("PowerVoltage", 10); //Create a battery-voltage topic publisher //创建电池电压话题发布者
   odom_publisher    = n.advertise<nav_msgs::Odometry>("odom", 50); //Create the odometer topic publisher //创建里程计话题发布者

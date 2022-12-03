@@ -156,6 +156,8 @@ class turn_on_robot
         short IMU_Trans(uint8_t Data_High,uint8_t Data_Low);  //IMU data conversion read //IMU数据转化读取
 		float Odom_Trans(uint8_t Data_High,uint8_t Data_Low); //Odometer data is converted to read //里程计数据转化读取
 
+		bool pub_odom_to_base_tf;
+
         string usart_port_name, robot_frame_id, gyro_frame_id, odom_frame_id; //Define the related variables //定义相关变量
         int serial_baud_rate;      //Serial communication baud rate //串口通信波特率
         RECEIVE_DATA Receive_Data; //The serial port receives the data structure //串口接收数据结构体
