@@ -9,7 +9,7 @@
       output="screen">
     <remap from="points2" to="/velodyne_points"/>
     <remap from="scan" to="/scan"/>
-    <remap from="odom" to="/odom/clean"/> 
+    <remap from="odom" to="/odom"/> 
     <remap from="imu" to="/imu"/>
   </node>
   
