@@ -10,10 +10,11 @@ project(car_pathplan)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -118,6 +119,42 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_executable(map_fusion_node 
+src/map_fusion_node.cpp
+)
+
+target_link_libraries( map_fusion_node
+  ${catkin_LIBRARIES}
+)
+
+
+add_executable(path_planner_node 
+src/local_planner_node.cpp
+src/local_planner_tool.cpp
+include/hybrid_a_star_module/hybrid_astar.cpp
+include/hybrid_a_star_module/member_func/member_compute.cpp
+include/hybrid_a_star_module/member_func/member_print.cpp
+)
+
+target_link_libraries( path_planner_node
+  ${catkin_LIBRARIES}
+)
+
+# add_executable(global_planner_node 
+# src/global_planner_node.cpp
+# src/global_planner_tool.cpp
+# # include/planner_module/planner.h
+# include/planner_module/A_star_module/astar.cpp
+# include/planner_module/A_star_module/astar.h
+# include/planner_module/Dijkstra_module/dijkstra.cpp
+# include/planner_module/Dijkstra_module/dijkstra.h
+# )
+
+# target_link_libraries(global_planner_node
+#   ${catkin_LIBRARIES}
+# )
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
