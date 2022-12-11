@@ -129,17 +129,17 @@ target_link_libraries( map_fusion_node
 )
 
 
-add_executable(path_planner_node 
-src/local_planner_node.cpp
-src/local_planner_tool.cpp
-include/hybrid_a_star_module/hybrid_astar.cpp
-include/hybrid_a_star_module/member_func/member_compute.cpp
-include/hybrid_a_star_module/member_func/member_print.cpp
-)
+# add_executable(path_planner_node 
+# src/local_planner_node.cpp
+# src/local_planner_tool.cpp
+# include/hybrid_a_star_module/hybrid_astar.cpp
+# include/hybrid_a_star_module/member_func/member_compute.cpp
+# include/hybrid_a_star_module/member_func/member_print.cpp
+# )
 
-target_link_libraries( path_planner_node
-  ${catkin_LIBRARIES}
-)
+# target_link_libraries( path_planner_node
+#   ${catkin_LIBRARIES}
+# )
 
 # add_executable(global_planner_node 
 # src/global_planner_node.cpp
