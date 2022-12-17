@@ -109,6 +109,7 @@ ClassPathPlanner::ClassPathPlanner(const ros::NodeHandle nh_in_): nh_{nh_in_}
 
 
     periodic_path_planer_ = nh_.createTimer( ros::Duration(planer_interval_), &ClassPathPlanner::path_plan, this );
+
     start_pose_ = {0,0,0};
     goal_pose_ = {0,0,0};
     std::cout << "ClassPathPlanner inti Done" << std::endl;
