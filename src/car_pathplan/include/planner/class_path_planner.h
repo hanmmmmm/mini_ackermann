@@ -109,7 +109,8 @@ ClassPathPlanner::ClassPathPlanner(const ros::NodeHandle nh_in_): nh_{nh_in_}
 
 
     periodic_path_planer_ = nh_.createTimer( ros::Duration(planer_interval_), &ClassPathPlanner::path_plan, this );
-
+    start_pose_ = {0,0,0};
+    goal_pose_ = {0,0,0};
     std::cout << "ClassPathPlanner inti Done" << std::endl;
 
 }
@@ -197,7 +198,7 @@ void ClassPathPlanner::get_robot_pose_in_map_frame(){
         tf::Matrix3x3 mat(q);
         mat.getEulerYPR(yaw, pitch, roll);
         start_pose_[2] = mod_2pi(yaw);
-
+        std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
         // std::cout << "robot yaw  " << start_pose_[2]*180.0/M_PI << std::endl;
 
     }
