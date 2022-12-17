@@ -128,6 +128,13 @@ target_link_libraries( map_fusion_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(path_plan_node 
+src/path_plan_node.cpp
+)
+
+target_link_libraries( path_plan_node
+  ${catkin_LIBRARIES}
+)
 
 # add_executable(path_planner_node 
 # src/local_planner_node.cpp
