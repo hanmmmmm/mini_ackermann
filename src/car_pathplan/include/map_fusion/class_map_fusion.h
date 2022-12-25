@@ -353,7 +353,9 @@ void ClassMapFusion::inflate_one_cell( std::vector<int8_t>& grids, const int x, 
         x_counter = 0;
         for( int x_ind = x_start_in_map; x_ind<x_end_in_map; x_ind++ ){
             index_1D = helper_grid2D_to_1D(x_ind, y_ind);
-            grids[index_1D] = std::max( inflate_sample_in[y_start_in_smpl+y_counter][x_start_in_smpl + x_counter], grids[index_1D]);
+            if( inflate_sample_in[y_start_in_smpl+y_counter][x_start_in_smpl + x_counter] > 0 ){
+                grids[index_1D] = std::max( inflate_sample_in[y_start_in_smpl+y_counter][x_start_in_smpl + x_counter], grids[index_1D]);
+            }
             x_counter ++ ;
         }
         y_counter ++ ;
