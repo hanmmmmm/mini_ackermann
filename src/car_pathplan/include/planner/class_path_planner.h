@@ -33,8 +33,8 @@ private:
 
     struct robotPose
     {
-        float x_meter, y_meter; // meter
-        float robot_yaw_rad;    // radian
+        double x_meter, y_meter; // meter
+        double robot_yaw_rad;    // radian
         int x_grid, y_grid;
         int x_grid_prev, y_grid_prev;
     };    
@@ -43,8 +43,8 @@ private:
 
     int path_plan_timeout_ms_;
 
-    std::array<float, 3> start_pose_;
-    std::array<float, 3> goal_pose_;
+    std::array<double, 3> start_pose_;
+    std::array<double, 3> goal_pose_;
 
     // std::string odom_topic_name_; 
     std::string path_published_topic_name_; 
@@ -61,7 +61,7 @@ private:
     nav_msgs::Path path_msg_;
 
     ros::Timer  periodic_path_planer_;
-    float planer_interval_;
+    double planer_interval_;
 
     ros::NodeHandle nh_;
     tf::TransformListener tf_listener;
@@ -72,7 +72,7 @@ private:
 
     void load_parameters();
 
-    float mod_2pi(float angle);
+    double mod_2pi(double angle);
 
     nav_msgs::OccupancyGrid map_msg_;
     geometry_msgs::PoseStamped goal_msg_;
@@ -138,37 +138,51 @@ void ClassPathPlanner::load_parameters(){
 void ClassPathPlanner::path_plan( const ros::TimerEvent &event ){
 
     if( ! map_received_ ) return;
+    if( ! goal_received_ ) return;
 
-    // std::cout << "path_plan start" << std::endl;
+    std::cout << "\npath_plan start" << std::endl;
 
     double t1 = helper_get_time();
 
     map_mutex_.lock();
     goal_mutex_.lock();
 
+    get_robot_pose_in_map_frame();
+
     planner_.setup(2000, start_pose_, goal_pose_, map_msg_.info.width, map_msg_.info.height, map_msg_.data, map_msg_.info.resolution);
 
     // planner_.search();
 
-    get_robot_pose_in_map_frame();
+    
 
-    planner_.search();
+    bool found_path = planner_.search();
 
-    std::deque< array<float, 3> >  path = planner_.get_path();
+    std::cout << "Search Done.  found_path:" << found_path << std::endl;
 
-    path_msg_.header.frame_id = map_frame_;
+    if( found_path ){
+        // std::cout << "in if" << std::endl;
+        std::deque< array<double, 3> >  path;
+        planner_.get_path(path);
 
-    path_msg_.poses.clear();
-    geometry_msgs::PoseStamped one_pose;
-    for( auto point : path ){
-        one_pose.pose.position.x = point[0] + map_msg_.info.origin.position.x;
-        one_pose.pose.position.y = point[1] + map_msg_.info.origin.position.y;
-        one_pose.pose.position.z = 0.0;
-        path_msg_.poses.push_back(one_pose);
-        std::cout << "path_ " << point[0] << " " << point[1] << " " << std::endl;
+        std::cout << "path size: " << path.size() << std::endl;
+
+        path_msg_.header.frame_id = map_frame_;
+
+        path_msg_.poses.clear();
+        geometry_msgs::PoseStamped one_pose;
+        for( auto point : path ){
+            // std::cout << "in for" << std::endl;
+            one_pose.pose.position.x = point[0] + map_msg_.info.origin.position.x;
+            one_pose.pose.position.y = point[1] + map_msg_.info.origin.position.y;
+            one_pose.pose.position.z = 0.0;
+            path_msg_.poses.push_back(one_pose);
+            // std::cout << "path_ " << point[0] << " " << point[1] << " " << std::endl;
+        }
+
+        path_puber_.publish( path_msg_ );
     }
 
-    path_puber_.publish( path_msg_ );
+    // std::cout << "after if" << std::endl;
 
     map_mutex_.unlock();
     goal_mutex_.unlock(); 
@@ -240,15 +254,17 @@ void ClassPathPlanner::goal_callback(const geometry_msgs::PoseStamped::ConstPtr 
     mat.getEulerYPR(yaw, pitch, roll);
 
     goal_pose_[2] =  mod_2pi(yaw);
+
+    goal_received_ = true;
     
     goal_mutex_.unlock();
 
 }
 
 
-float ClassPathPlanner::mod_2pi( float a)
+double ClassPathPlanner::mod_2pi( double a)
 {
-    float angle = a;
+    double angle = a;
     while (angle > 2*M_PI){
         angle -= 2*M_PI;
     }

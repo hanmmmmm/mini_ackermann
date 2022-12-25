@@ -14,118 +14,140 @@
 
 #include "array_hasher.h"
 
-// #include "../local_planner/path_data.h"
+#include "enum_fail_reasons.h"
+
+#include "Reeds_Shepp_curve/reedsshepp.h"
 
 using std::array;
-using std::cout;
-using std::endl;
 using std::string;
 using std::vector;
+using std::cout;
+using std::endl;
+
 
 using std::chrono::high_resolution_clock;
 
+enum EnumExploreState : char
+{
+    NEW = 0,
+    OPEN = 1,
+    CLOSED = 2
+};
 
-class Hybrid_astar_class  // :public pathPoint
+
+// it might be better to split grids into openlist and closedlist, for reduce time for searching the min-cost grids. 
+
+
+class Hybrid_astar_class  
 {
 private:
+
+    ReedsSheppClass RS_curve_finder_;
+    int counter_for_rs_search_;
+    int interval_for_rs_search_;
 
     vector<int8_t> *grid_map_;
 
     int grid_map_width_, grid_map_height_;
 
-    float fine_to_grid_ratio_ = 0.0;
-    const float angle_resolution_ = M_PI/18.0; // radian
+    int8_t obstacle_threshold_value_;
 
+    double fine_to_grid_ratio_ = 0.0;
+    const double angle_resolution_ = M_PI/18.0; // radian
 
     int time_out_ms_;
 
-    vector< vector<float> > motion_model_;
+    vector< vector<double> > motion_model_;
 
-    array<int, 3> start_grid_;
-    array<float, 3> start_pose_;
+    array<int,   3> start_grid_;
+    array<double, 3> start_pose_;
 
-    array<int, 3> goal_grid_;
-    array<float, 3> goal_pose_;
+    array<int,   3> goal_grid_;
+    array<double, 3> goal_pose_;
 
-    array<float, 3> close_goal_pose_;
+    array<double, 3> close_goal_pose_;
 
-    float start_angle_, goal_angle_, close_goal_angle_; 
+    std::array<int, 3> start_grid_for_rs_curve_;
+
+    double close_goal_angle_; 
 
     struct gridInfo
     {
-        float gcost = 0;
-        float fcost = 0;
-        int state = 0;       // 0:new   1:open   2:closed
+        double gcost = 0;
+        double fcost = 0;
+        EnumExploreState state = EnumExploreState::NEW;
         int steer_type = 0;  // 0-5, total 6 types
-        // float fine_pose_x, fine_pose_y, fine_pose_yaw;
-        array<float, 3> fine_pose;
-        array<int,3> parent;
+        array<double, 3> fine_pose;
+        array<int, 3> parent;
     };
     
     std::unordered_map<array<int, 3>, gridInfo , ArrayHasher3> all_grids_;
 
     struct goalTolerance
     {
-       float max_distance_error;
-       float max_heading_error;
+       double max_distance_error;
+       double max_heading_error;
     };
 
     goalTolerance goal_tolerance;
    
+    double step_length_ ;
+    double turning_raius_  ;
+    double turning_angle_ ;
+
+    bool FLAG_reach_goal_ ;
+    bool FLAG_trapped_;
+    bool FLAG_inside_obstacle_;
+    bool FLAG_found_rs_solution_;
+
+    EnumFailReasons fail_reasons_;
 
 
-    // int fine_map_width_, fine_map_height_, grid_map_width_, grid_map_height_;
 
-    float step_length_ ;
-    float turning_raius_  ;
-    float turning_angle_ ;
-
-    bool FLAG_reach_goal_ = false;
-
-
-    std::deque< array<float, 3> > path_;
+    std::deque< array<double, 3> > path_;
+    std::vector< array<double, 3>> rs_path_;
+    
 
     void build_motion_model();
 
     void print_init_info();
 
-    float mod_2pi(float angle);
+    double mod_2pi(double angle);
 
+    // int improve_hcost( array<double, 3> node_pose, int hcost, int scan_range, bool same_steer);
 
-    int improve_hcost( array<float, 3> node_pose, int hcost, int scan_range, bool same_steer);
-    void check_if_reach_goal( array<float, 3> node_pose, array<float, 3> in_goal_pose, array<int, 3> in_curr_grid);
+    void check_if_reach_goal( array<double, 3> node_pose, array<double, 3> in_goal_pose, array<int, 3> in_curr_grid);
 
     int twoD_to_oneD(const int x, const int y, const int width, const int height);
 
-    std::array<int, 3> helper_convert_fine_pose_to_grid(const std::array<float, 3> fine_pose , float dist_ratio, float ang_ratio );
+    array<int,3> helper_convert_fine_pose_to_grid(const array<double, 3> fine_pose , double dist_ratio, double ang_ratio );
 
-    float compute_h_cost_Euclidean(const std::array<float, 3> n, const std::array<float, 3> g);
-    float compute_h_cost_Manhattan(const std::array<float, 3> n, const std::array<float, 3> g);
-    float compute_h_cost_Chebyshev(const std::array<float, 3> n, const std::array<float, 3> g);
+    void explore_one_node(array<double, 3> curr_pose, array<int, 3> curr_grid);
+    
+    void explore_one_ite(vector< array<int, 3>> active_nodes);
+
+    vector< array<int,3>> find_min_cost_nodes();
+
+    double compute_h_cost_Euclidean(const array<double, 3> n, const array<double, 3> g);
+    double compute_h_cost_Manhattan(const array<double, 3> n, const array<double, 3> g);
+    double compute_h_cost_Chebyshev(const array<double, 3> n, const array<double, 3> g);
 
 
 public:
     Hybrid_astar_class();
+    ~Hybrid_astar_class();
 
     void setup(const int timeout_ms, 
-                const array<float,3> startpose, 
-                const array<float,3> goalpose ,
+                const array<double,3> startpose, 
+                const array<double,3> goalpose ,
                 const int map_width_grid, 
                 const int map_height_grid, 
                 vector<int8_t>& map,
-                const float grid_resolution);
+                const double grid_resolution);
 
-    ~Hybrid_astar_class();
-
-    bool FLAG_update_map_for_view = true;
-
-    void explore_one_node(array<float, 3> curr_pose, array<int, 3> curr_grid);
-    void explore_one_ite(vector< array<int, 3>> active_nodes);
-    vector< array<int,3>> find_min_cost_nodes();
     bool search();
-    std::deque< array<float, 3> >  get_path();
-    void print_path();
 
+    void get_path( std::deque< array<double, 3> >& path);
 
 };
 
@@ -142,14 +164,17 @@ Hybrid_astar_class::~Hybrid_astar_class()
 
 void Hybrid_astar_class::setup(
                                 const int timeout_ms,
-                                const array<float,3> startpose, 
-                                const array<float,3> goalpose,
+                                const array<double,3> startpose, 
+                                const array<double,3> goalpose,
                                 const int map_width_grid, 
                                 const int map_height_grid, 
                                 vector<int8_t>& map,
-                                const float grid_resolution 
+                                const double grid_resolution 
                                 )
 {
+
+    std::cout << "Hybrid_astar_class::setup() START" << std::endl;
+
     time_out_ms_ = timeout_ms;
 
     grid_map_ = &map;
@@ -162,6 +187,8 @@ void Hybrid_astar_class::setup(
     start_grid_ = helper_convert_fine_pose_to_grid(start_pose_, fine_to_grid_ratio_, angle_resolution_);
     goal_grid_  = helper_convert_fine_pose_to_grid(goal_pose_,  fine_to_grid_ratio_, angle_resolution_);
 
+    
+
     std::cout << "start_grid_ " << std::endl;
     std::cout << start_grid_[0] << " " << start_grid_[1] << " " << start_grid_[2] << std::endl;
     std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
@@ -171,20 +198,30 @@ void Hybrid_astar_class::setup(
     std::cout << goal_pose_[0] << " " << goal_pose_[1] << " " << goal_pose_[2] << std::endl;
 
     path_.clear();
+    rs_path_.clear(); 
     all_grids_.clear();
 
     FLAG_reach_goal_ = false;
+    FLAG_trapped_ = false;
+    FLAG_found_rs_solution_ = false;
 
-    step_length_ = 0.2;
+    fail_reasons_ = EnumFailReasons::not_fail; 
+
+    counter_for_rs_search_ = 0 ;
+    interval_for_rs_search_= 3 ;
+
+    step_length_ = 0.1;
     turning_raius_ = 0.5;
     turning_angle_ = step_length_ / turning_raius_;
+
+    obstacle_threshold_value_ = 80;
 
     grid_map_width_ = map_width_grid;   
     grid_map_height_ = map_height_grid; 
 
     all_grids_[start_grid_].fine_pose = start_pose_;
     all_grids_[start_grid_].parent = start_grid_;
-    all_grids_[start_grid_].state = 1;
+    all_grids_[start_grid_].state = EnumExploreState::OPEN;
     all_grids_[start_grid_].steer_type = 1;
 
     goal_tolerance.max_distance_error = 0.6;
@@ -192,29 +229,91 @@ void Hybrid_astar_class::setup(
 
     build_motion_model();
 
-    // print_init_info();
+    std::cout << "Hybrid_astar_class::setup() DONE" << std::endl;
 }
 
 
 
 
-void Hybrid_astar_class::explore_one_node(std::array<float, 3> curr_pose, std::array<int, 3> curr_grid)
+void Hybrid_astar_class::explore_one_node(std::array<double, 3> curr_pose, std::array<int, 3> curr_grid)
 {
-    all_grids_[curr_grid].state = 2;
-    float curr_theta = curr_pose[2];
-    float cos_theta = cos(curr_theta);
-    float sin_theta = sin(curr_theta);
+    all_grids_[curr_grid].state = EnumExploreState::CLOSED;
+    double curr_theta = curr_pose[2];
+    double cos_theta = cos(curr_theta);
+    double sin_theta = sin(curr_theta);
+
+    bool usable_rs_found = false; 
+
+    if( counter_for_rs_search_%interval_for_rs_search_ == 0){
+        // check rs from this pose to goal
+        RS_curve_finder_.setup(curr_pose, goal_pose_);
+        RS_curve_finder_.search();
+        // std::cout << "Found " << RS_curve_finder_.results_.size() << " possible rs paths " << std::endl;
+        if( RS_curve_finder_.results_.size() >= 1){
+            // int num_rs_path_to_check = std::min( int(RS_curve_finder_.results_.size()), 3 );
+            int num_rs_path_to_check = int(RS_curve_finder_.results_.size())-1;
+            int pci;
+            for(pci=0; pci<=num_rs_path_to_check; pci++){
+                auto *rs_path = &RS_curve_finder_.results_[pci];
+                // std::cout << "check rs path #" << pci << std::endl;
+                
+                if (rs_path->path_steps.size()==0){
+                    // std::cout << "it's an empty path" << std::endl;
+                    continue;
+                }
+                bool this_rs_is_free_of_collision = true;
+                for(int pointi = 1; pointi<=rs_path->path_steps.size(); pointi++){
+                    // std::array<double,3> fine_pose = {rs_path->path_steps[pointi].x,
+                    //                                     rs_path->path_steps[pointi].y,
+                    //                                     rs_path->path_steps[pointi].theta};
+                    std::array<int, 3> point_grid = helper_convert_fine_pose_to_grid(rs_path->path_steps[pointi], fine_to_grid_ratio_, angle_resolution_);
+                    int point_1d_index = twoD_to_oneD(point_grid[0], point_grid[1], grid_map_width_, grid_map_height_);
+                    if( (*grid_map_)[ point_1d_index ] > obstacle_threshold_value_ ){
+                        // std::cout << "rs path #" << pci << " collide" << std::endl;
+                        usable_rs_found = false; 
+                        this_rs_is_free_of_collision = false;
+                        break;
+                    }
+                    // auto *p1 = &(rs_path->path_steps[pointi-1]);
+                    // auto *p2 = &(rs_path->path_steps[pointi  ]);
+                    // std::array<int, 3> p1_grid = helper_convert_fine_pose_to_grid();
+                    // std::array<int, 3> p2_grid = helper_convert_fine_pose_to_grid();
+                    // if(p1_grid == p2_grid){
+                    //     // check only this grid for collision.
+                    // }
+                    // else{
+                    //     // bresenham find line, and check each cell for collision. 
+                    // }
+                }
+                if(this_rs_is_free_of_collision){
+                    usable_rs_found = true;
+                    break;
+                }
+            }
+            if ( usable_rs_found ){
+            rs_path_ = RS_curve_finder_.results_[pci].path_steps;
+            FLAG_reach_goal_ = true;
+            FLAG_found_rs_solution_ = true;
+            start_grid_for_rs_curve_ = curr_grid; // helper_convert_fine_pose_to_grid(curr_pose, fine_to_grid_ratio_, angle_resolution_);
+            close_goal_pose_ = curr_pose;
+            return;
+            }
+        }
+    }
+    counter_for_rs_search_ ++;
+
 
     // cout << "explore_one_node:: " << all_grids_[curr_grid].fine_pose[0] << " " << all_grids_[curr_grid].fine_pose[1] << " "
     //  << all_grids_[curr_grid].fine_pose[2] << endl;
 
+    double edge_cost = step_length_;
     int count = 0;
     for (auto mm : motion_model_)
     {
-        float dx = cos_theta * mm[0] + sin_theta * mm[1];
-        float dy = sin_theta * mm[0] + cos_theta * mm[1];
-        float nb_x = curr_pose[0] + dx;
-        float nb_y = curr_pose[1] + dy;
+        double dx = cos_theta * mm[0] + sin_theta * mm[1];
+        double dy = sin_theta * mm[0] + cos_theta * mm[1];
+        double nb_x = curr_pose[0] + dx;
+        double nb_y = curr_pose[1] + dy;
 
         // cout << "explore_one_node:: " << nb_x << " " << nb_y << " " << curr_theta + mm[2] << endl;
 
@@ -223,66 +322,50 @@ void Hybrid_astar_class::explore_one_node(std::array<float, 3> curr_pose, std::a
 
         if (0 <= nb_x_grid && nb_x_grid < grid_map_width_ && 0 <= nb_y_grid && nb_y_grid < grid_map_height_)
         {
-            
             int nb_grid_index = twoD_to_oneD(nb_x_grid, nb_y_grid, grid_map_width_, grid_map_height_);
-            int obs_prob = int((*grid_map_)[ nb_grid_index ]);
-            if( obs_prob < 90 )
+
+            if( (*grid_map_)[ nb_grid_index ] < obstacle_threshold_value_ )
             { // if not obstacle
 
-                float edge_cost = step_length_;
-                int is_reversing = int(mm[3]);
-                if (is_reversing)
-                    {edge_cost *= 1.05;}
-
-                int nb_steer = count;
+                // int nb_steer = count;
                 // int parent_steer = grid_status[curr_grid][3];
-                int parent_steer = all_grids_[curr_grid].steer_type;
+                // int parent_steer = all_grids_[curr_grid].steer_type;
 
-                float nb_a = curr_theta + mm[2]; // angle change in this step
-                nb_a = mod_2pi(nb_a);
+                double nb_angle = mod_2pi(curr_theta + mm[2]); // angle change in this step
 
-                const std::array<float, 3> nb_pose = {nb_x, nb_y, nb_a};
+                const std::array<double, 3> nb_pose = {nb_x, nb_y, nb_angle};
                 const std::array<int, 3> nb_grid = helper_convert_fine_pose_to_grid(nb_pose, fine_to_grid_ratio_, angle_resolution_);
 
-                // if (grid_parent.count(nb_grid) == 0)
                 if (all_grids_.count(nb_grid) == 0)
                 {
                     all_grids_[nb_grid].fine_pose = nb_pose;
                     all_grids_[nb_grid].parent = curr_grid;
-                    all_grids_[nb_grid].state = 1;
+                    all_grids_[nb_grid].state = EnumExploreState::OPEN;
                     all_grids_[nb_grid].steer_type = count;
-                    float gcost = all_grids_[curr_grid].gcost  + edge_cost;
-                    all_grids_[nb_grid].gcost = gcost;
-
-                    float hcost = compute_h_cost_Euclidean(nb_pose, goal_pose_);
-
-                    // hcost = improve_hcost(nb_pose, hcost, obstacle_scan_range, nb_steer==parent_steer);
-
-                    all_grids_[nb_grid].fcost = gcost + hcost ;
+                    all_grids_[nb_grid].gcost = all_grids_[curr_grid].gcost  + edge_cost;
+                    all_grids_[nb_grid].fcost = all_grids_[nb_grid].gcost + compute_h_cost_Euclidean(nb_pose, goal_pose_);
                 }
                 else{
-                    if( all_grids_[nb_grid].state==1  ||  (all_grids_[nb_grid].state==2 && all_grids_[nb_grid].parent==curr_grid ) ){
-                        float old_cost = all_grids_[nb_grid].fcost;
-                        float gcost = all_grids_[curr_grid].gcost + edge_cost;
+                    if( all_grids_[nb_grid].state==EnumExploreState::OPEN ||  
+                        (all_grids_[nb_grid].state==EnumExploreState::CLOSED && all_grids_[nb_grid].parent==curr_grid ) ){
+                        double old_cost = all_grids_[nb_grid].fcost;
+                        double gcost = all_grids_[curr_grid].gcost + edge_cost;
                         all_grids_[nb_grid].gcost = gcost;
 
-                        float hcost = compute_h_cost_Euclidean(nb_pose, goal_pose_);
-                        // hcost = improve_hcost(nb_pose, hcost, obstacle_scan_range, nb_steer==parent_steer);
-                        float fcost = gcost + hcost;
+                        double hcost = compute_h_cost_Euclidean(nb_pose, goal_pose_);
+                        double fcost = gcost + hcost;
                         
                         if(fcost < old_cost){
                             all_grids_[nb_grid].fine_pose = nb_pose;
                             all_grids_[nb_grid].parent = curr_grid;
-                            all_grids_[nb_grid].state = 1;
+                            all_grids_[nb_grid].state = EnumExploreState::OPEN;
                             all_grids_[nb_grid].steer_type = count;
                             all_grids_[nb_grid].fcost = fcost;
                             all_grids_[nb_grid].gcost = gcost;
                         }
                     }
                 }
-
                 check_if_reach_goal(nb_pose, goal_pose_, curr_grid);
-                
             }
         }
         count++;
@@ -300,27 +383,27 @@ inline int Hybrid_astar_class::twoD_to_oneD(const int x, const int y, const int 
 
 void Hybrid_astar_class::build_motion_model()
 {
-    float raius = turning_raius_;
-    float angle = turning_angle_;
+    double raius = turning_raius_;
+    double angle = turning_angle_;
     // std::cout << "build_motion_model - turning_raius_: " << raius << std::endl;
     // std::cout << "build_motion_model - turning_angle_: " << angle << std::endl;
 
-    float unit_dx = raius * sin(angle);
-    float unit_dy = raius * (cos(angle) - 1);
+    double unit_dx = raius * sin(angle);
+    double unit_dy = raius * (cos(angle) - 1);
 
-    std::vector<float> temp = {unit_dx, -1 * unit_dy, angle, 0};
+    std::vector<double> temp = {unit_dx, -1 * unit_dy, angle, 0};
     motion_model_.push_back(temp);
 
     temp = {step_length_, 0, 0, 0};
     motion_model_.push_back(temp);
 
-    temp = {unit_dx, unit_dy, float(M_PI * 2 - angle), 0};
+    temp = {unit_dx, unit_dy, double(M_PI * 2 - angle), 0};
     motion_model_.push_back(temp);
 
     temp = {-1 * unit_dx, unit_dy, angle, 1};
     motion_model_.push_back(temp);
 
-    temp = {-1 * step_length_, 0, float(M_PI * 2 - angle), 1};
+    temp = {-1 * step_length_, 0, double(M_PI * 2 - angle), 1};
     motion_model_.push_back(temp);
 
     temp = {-1 * unit_dx, -1 * unit_dy, angle, 1};
@@ -328,7 +411,7 @@ void Hybrid_astar_class::build_motion_model()
 }
 
 
-std::array<int, 3> Hybrid_astar_class::helper_convert_fine_pose_to_grid(const std::array<float, 3> fine_pose , float dist_ratio, float ang_ratio )
+inline std::array<int, 3> Hybrid_astar_class::helper_convert_fine_pose_to_grid(const std::array<double, 3> fine_pose , double dist_ratio, double ang_ratio )
 {
     std::array<int, 3> ct;
     ct[0] = int(fine_pose[0] / dist_ratio);
@@ -340,9 +423,9 @@ std::array<int, 3> Hybrid_astar_class::helper_convert_fine_pose_to_grid(const st
 
 
 
-float Hybrid_astar_class::mod_2pi( float a)
+inline double Hybrid_astar_class::mod_2pi( double a)
 {
-    float angle = a;
+    double angle = a;
     while (angle > 2*M_PI){
         angle -= 2*M_PI;
     }
@@ -355,36 +438,36 @@ float Hybrid_astar_class::mod_2pi( float a)
 
 
 
-float Hybrid_astar_class::compute_h_cost_Euclidean(const std::array<float, 3> n, const std::array<float, 3> g)
+double Hybrid_astar_class::compute_h_cost_Euclidean(const std::array<double, 3> n, const std::array<double, 3> g)
 {
-    float h = 0;
+    double h = 0;
 
-    float dx = n[0] - g[0];
-    float dy = n[1] - g[1];
+    double dx = n[0] - g[0];
+    double dy = n[1] - g[1];
 
     h = sqrt(dx * dx + dy * dy) * 1;
 
     return (h);
 }
 
-float Hybrid_astar_class::compute_h_cost_Manhattan(const std::array<float, 3> n, const std::array<float, 3> g)
+double Hybrid_astar_class::compute_h_cost_Manhattan(const std::array<double, 3> n, const std::array<double, 3> g)
 {
-    float h = 0;
+    double h = 0;
 
-    float dx = abs(n[0] - g[0]);
-    float dy = abs(n[1] - g[1]);
+    double dx = abs(n[0] - g[0]);
+    double dy = abs(n[1] - g[1]);
 
     h = (dx + dy) * 1;
 
     return (h);
 }
 
-float Hybrid_astar_class::compute_h_cost_Chebyshev(const std::array<float, 3> n, const std::array<float, 3> g)
+double Hybrid_astar_class::compute_h_cost_Chebyshev(const std::array<double, 3> n, const std::array<double, 3> g)
 {
-    float h = 0;
+    double h = 0;
 
-    float dx = abs(n[0] - g[0]);
-    float dy = abs(n[1] - g[1]);
+    double dx = abs(n[0] - g[0]);
+    double dy = abs(n[1] - g[1]);
 
     h = std::max(dx, dy) * 1;
 
@@ -397,15 +480,14 @@ std::vector<std::array<int, 3>> Hybrid_astar_class::find_min_cost_nodes()
 {
     // std::cout << "find_min_cost_nodes" << std::endl;
     std::vector<std::array<int, 3>> out;
-    float min_cost = std::numeric_limits<float>::max();
-    
-    // for (auto n : grid_status) // if a node exist in node_parent
+    double min_cost = std::numeric_limits<double>::max();
+    std::array<int, 3> node;
     for (auto n : all_grids_) 
     {
-        std::array<int, 3> node = n.first;
-        if (n.second.state == 1)  // if state == open
+        if (n.second.state == EnumExploreState::OPEN)  
         {
-            float cost = n.second.fcost;
+            node = n.first;
+            double cost = n.second.fcost;
             if (cost < min_cost)
             {
                 min_cost = cost;
@@ -416,12 +498,10 @@ std::vector<std::array<int, 3>> Hybrid_astar_class::find_min_cost_nodes()
             {
                 out.push_back(node);
             }
-            
         }
-
     }
 
-    // cout << "min_cost  " << min_cost << endl;
+    std::cout << "Hybrid_astar_class::find_min_cost_nodes  DONE. " << "min_cost  "  << min_cost << "  size:" << out.size() << std::endl;
 
     return out;
 }
@@ -431,40 +511,52 @@ std::vector<std::array<int, 3>> Hybrid_astar_class::find_min_cost_nodes()
 
 void Hybrid_astar_class::explore_one_ite(std::vector<std::array<int, 3>> active_nodes)
 {
+    if (active_nodes.size()==0){
+        FLAG_trapped_ = true;
+        std::cout << "   !!!!!!!!!!!   TRAP   !!!!!!!!!!!!!! "<< std::endl;
+        return;
+    }
+
     for (std::vector<std::array<int, 3>>::iterator it = active_nodes.begin(); it != active_nodes.end(); ++it)
     {
-        // auto fine_pose = grid_fine_pose[*it];
+        std::cout << "explore node: " << (*it)[0] << " " << (*it)[1] << " " << (*it)[2] << std::endl;
         auto fine_pose = all_grids_[*it].fine_pose;
         explore_one_node(fine_pose, *it);
     }
-
-
-    
 }
-
-
-
 
 
 bool Hybrid_astar_class::search()
 {
-    std::cout << "Looking for path " << std::endl;
+    std::cout << "Hybrid_astar_class::search()  Looking for path " << std::endl;
 
     high_resolution_clock::time_point time1 = high_resolution_clock::now();
 
     int search_count = 0;
     while (!FLAG_reach_goal_)
     {
+        cout << "search_count " << search_count << endl;
+
         explore_one_ite( find_min_cost_nodes() );
-        // cout << "search_count " << search_count << endl;
+        
         search_count ++;
+
+        if ( FLAG_found_rs_solution_ ){
+            std::cout << "search success, found_rs_solution, tried " << search_count << " times" << std::endl;
+            break;
+        }
+
+        if( FLAG_trapped_ ){
+            std::cout << "search trapped, failed, tried " << search_count << " times" << std::endl;
+            return false;
+        }
 
         high_resolution_clock::time_point time2 = high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time2-time1);
 
         if( int(duration.count()/1000.0) >= time_out_ms_ )
         {
-            cout << "search failed, tried " << search_count << "times ,timeout" << std::endl;
+            std::cout << "search timeout, failed, tried " << search_count << " times" << std::endl;
             return false;
         }
 
@@ -480,36 +572,52 @@ bool Hybrid_astar_class::search()
         // }
     }
 
-    std::cout << "Found the goal" << std::endl;
+    std::cout << "Found the goal. Tried " << search_count << " times " << std::endl;
     
     return true;
 }
 
 
 
-
-std::deque< array<float, 3> >  Hybrid_astar_class::get_path()
+void Hybrid_astar_class::get_path( std::deque< array<double, 3> >& path)
 {
+    path.clear();
     std::array<int, 3> get_path_curr_node = helper_convert_fine_pose_to_grid(close_goal_pose_, fine_to_grid_ratio_, angle_resolution_);
-    // std::cout << "get_path" << std::endl;
-    
+
+    // array<double, 3>  point;
     while (get_path_curr_node != start_grid_)
     {
-        // cout << "Hybrid_astar_class::get_path: " << all_grids_[get_path_curr_node].fine_pose[0] << " " << all_grids_[get_path_curr_node].fine_pose[1] << " " << all_grids_[get_path_curr_node].fine_pose[2] << endl;
-        array<float, 3>  point;
-        point[2] = all_grids_[get_path_curr_node].fine_pose[2];
-        point[0] = all_grids_[get_path_curr_node].fine_pose[0];
-        point[1] = all_grids_[get_path_curr_node].fine_pose[1];
-        path_.push_front( point );
+        // if (get_path_curr_node[0] != 0){
+        //     std::cout << "goal_grid_  : " << goal_grid_[0] << " " << goal_grid_[1] << " " << goal_grid_[2] << std::endl;
+        //     std::cout << "start_grid_ : " << start_grid_[0] << " " << start_grid_[1] << " " << start_grid_[2] << std::endl;
+        //     std::cout << "this        : " << get_path_curr_node[0] << " " << get_path_curr_node[1] << " " << get_path_curr_node[2] << std::endl;
+
+        // }
+
+        // std::cout << "in while" << std::endl;
+        // point[2] = all_grids_[get_path_curr_node].fine_pose[2];
+        // point[0] = all_grids_[get_path_curr_node].fine_pose[0];
+        // point[1] = all_grids_[get_path_curr_node].fine_pose[1];
+        // path.push_front( point );
+        path.push_front( all_grids_[get_path_curr_node].fine_pose );
         
         get_path_curr_node = all_grids_[get_path_curr_node].parent;
     }
 
-    return path_;
+    if( FLAG_found_rs_solution_ ){
+        for( auto pt : rs_path_ ){
+            path.push_back( pt  );
+        }
+    }
+
+    // std::cout << "Found path: " << std::endl;
+    // for ( auto pht : path){
+    //     std::cout << pht[0] << " " << pht[1] << " " << pht[2] << std::endl;
+    // }
 }
 
 
-void Hybrid_astar_class::check_if_reach_goal(array<float, 3> node_pose,array<float, 3> in_goal_pose, array<int, 3> in_curr_grid){
+void Hybrid_astar_class::check_if_reach_goal(array<double, 3> node_pose,array<double, 3> in_goal_pose, array<int, 3> in_curr_grid){
     if (compute_h_cost_Euclidean(node_pose, in_goal_pose) < goal_tolerance.max_distance_error)
     {
         if (abs(node_pose[2] - in_goal_pose[2]) < goal_tolerance.max_heading_error  )
@@ -521,7 +629,7 @@ void Hybrid_astar_class::check_if_reach_goal(array<float, 3> node_pose,array<flo
             // grid_parent[goal_grid] = in_curr_grid;
             all_grids_[goal_grid_].fine_pose = node_pose;
             // grid_fine_pose[goal_grid] = node_pose;
-            all_grids_[goal_grid_].state = 2;
+            all_grids_[goal_grid_].state = EnumExploreState::CLOSED;
             // grid_status[goal_grid][2] = 2;
         }
     }
