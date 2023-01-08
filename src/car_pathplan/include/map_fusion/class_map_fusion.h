@@ -142,7 +142,7 @@ void ClassMapFusion::load_parameters(){
 
     merge_data_time_interval_ = 0.1;
 
-    inflation_.inflate_radius = 3;
+    inflation_.inflate_radius = 2;
 
 }
 
@@ -319,14 +319,14 @@ void ClassMapFusion::inflate_one_cell( std::vector<int8_t>& grids, const int x, 
     int x_start_in_smpl, x_end_in_smpl, y_start_in_smpl, y_end_in_smpl;
 
     x_start_in_map = std::max( x-radius, 0 );
-    x_end_in_map   = std::min( x+radius, map_width );
+    x_end_in_map   = std::min( x+radius+1, map_width );
     x_start_in_smpl= std::max( radius-x, 0 );
-    x_end_in_smpl  = std::min( radius + map_width -1-x, radius*2 );
+    x_end_in_smpl  = std::min( radius + map_width -1-x, radius*2+1 );
 
     y_start_in_map = std::max( y-radius, 0 );
-    y_end_in_map   = std::min( y+radius, map_height );
+    y_end_in_map   = std::min( y+radius+1, map_height );
     y_start_in_smpl= std::max( radius-y, 0 );
-    y_end_in_smpl  = std::min( radius + map_height -1-y, radius*2 );
+    y_end_in_smpl  = std::min( radius + map_height -1-y, radius*2+1 );
 
     // std::cout << x << " " << y << " ; " << map_width << " " << map_height << " ; " << x_start_in_map << " ; " << x_end_in_map << std::endl; 
 
