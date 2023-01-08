@@ -162,8 +162,8 @@ Visualization Manager:
       Class: rviz/Path
       Color: 25; 255; 0
       Enabled: true
-      Head Diameter: 0.029999999329447746
-      Head Length: 0.019999999552965164
+      Head Diameter: 0.05999999865889549
+      Head Length: 0.03999999910593033
       Length: 0.30000001192092896
       Line Style: Billboards
       Line Width: 0.009999999776482582
@@ -173,11 +173,11 @@ Visualization Manager:
         Y: 0
         Z: 0
       Pose Color: 255; 85; 255
-      Pose Style: None
+      Pose Style: Arrows
       Queue Size: 10
       Radius: 0.029999999329447746
-      Shaft Diameter: 0.009999999776482582
-      Shaft Length: 0.009999999776482582
+      Shaft Diameter: 0.019999999552965164
+      Shaft Length: 0.07999999821186066
       Topic: /path
       Unreliable: false
       Value: true
@@ -237,7 +237,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 4.084322929382324
+      Distance: 4.897873401641846
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -245,9 +245,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.0570858716964722
-        Y: -0.02943476475775242
-        Z: -0.01062071043998003
+        X: 1.2368927001953125
+        Y: -0.09488634020090103
+        Z: -0.010440518148243427
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -273,5 +273,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1048
-  X: 91
-  Y: 67
+  X: 112
+  Y: 121
