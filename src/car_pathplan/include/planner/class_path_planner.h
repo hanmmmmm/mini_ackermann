@@ -15,14 +15,28 @@
 #include "nav_msgs/MapMetaData.h"
 #include "nav_msgs/Path.h"
 #include "tf/transform_listener.h"
+#include "tf2/LinearMath/Quaternion.h"
 
-#include "../hybrid_a_star_module/hybrid_astar.h"
+// #include "../hybrid_a_star_module/hybrid_astar.h"
+#include "../hybrid_a_star_module/hybrid_astar_2.h"
 
 using std::chrono::high_resolution_clock;
 
 /*
 The pose of start/robot, goal, path are converted from /map frame to map-grid-space;
 converted_tf = tf_in_map_frame - map_msg_origin;
+
+*/
+
+
+/*
+TODO:
+add a function to check if the current path is still valid:
+- robot position xy is close to it
+- robot heading is close to the path
+- path is clear from obstacles
+- 
+if it's still valid, then no need to search new path. 
 
 */
 
@@ -140,7 +154,7 @@ void ClassPathPlanner::path_plan( const ros::TimerEvent &event ){
     if( ! map_received_ ) return;
     if( ! goal_received_ ) return;
 
-    std::cout << "\npath_plan start" << std::endl;
+    // std::cout << "\npath_plan start" << std::endl;
 
     double t1 = helper_get_time();
 
@@ -164,17 +178,27 @@ void ClassPathPlanner::path_plan( const ros::TimerEvent &event ){
         std::deque< array<double, 3> >  path;
         planner_.get_path(path);
 
-        std::cout << "path size: " << path.size() << std::endl;
+        // std::cout << "path size: " << path.size() << std::endl;
 
         path_msg_.header.frame_id = map_frame_;
 
         path_msg_.poses.clear();
         geometry_msgs::PoseStamped one_pose;
+        tf2::Quaternion myQuaternion;
+
         for( auto point : path ){
             // std::cout << "in for" << std::endl;
             one_pose.pose.position.x = point[0] + map_msg_.info.origin.position.x;
             one_pose.pose.position.y = point[1] + map_msg_.info.origin.position.y;
             one_pose.pose.position.z = 0.0;
+
+            myQuaternion.setRPY(0,0,point[2]);
+            myQuaternion=myQuaternion.normalize();
+            one_pose.pose.orientation.w = myQuaternion.w();
+            one_pose.pose.orientation.x = myQuaternion.x();
+            one_pose.pose.orientation.y = myQuaternion.y();
+            one_pose.pose.orientation.z = myQuaternion.z();
+
             path_msg_.poses.push_back(one_pose);
             // std::cout << "path_ " << point[0] << " " << point[1] << " " << std::endl;
         }
@@ -213,7 +237,7 @@ void ClassPathPlanner::get_robot_pose_in_map_frame(){
         tf::Matrix3x3 mat(q);
         mat.getEulerYPR(yaw, pitch, roll);
         start_pose_[2] = mod_2pi(yaw);
-        std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
+        // std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
         // std::cout << "robot yaw  " << start_pose_[2]*180.0/M_PI << std::endl;
 
     }

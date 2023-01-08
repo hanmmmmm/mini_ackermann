@@ -191,13 +191,13 @@ void Hybrid_astar_class::setup(
 
     
 
-    std::cout << "start_grid_ " << std::endl;
-    std::cout << start_grid_[0] << " " << start_grid_[1] << " " << start_grid_[2] << std::endl;
-    std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
+    // std::cout << "start_grid_ " << std::endl;
+    // std::cout << start_grid_[0] << " " << start_grid_[1] << " " << start_grid_[2] << std::endl;
+    // std::cout << start_pose_[0] << " " << start_pose_[1] << " " << start_pose_[2] << std::endl;
 
-    std::cout << "goal_grid_ " << std::endl;
-    std::cout << goal_grid_[0] << " " << goal_grid_[1] << " " << goal_grid_[2] << std::endl;
-    std::cout << goal_pose_[0] << " " << goal_pose_[1] << " " << goal_pose_[2] << std::endl;
+    // std::cout << "goal_grid_ " << std::endl;
+    // std::cout << goal_grid_[0] << " " << goal_grid_[1] << " " << goal_grid_[2] << std::endl;
+    // std::cout << goal_pose_[0] << " " << goal_pose_[1] << " " << goal_pose_[2] << std::endl;
 
     path_.clear();
     rs_path_.clear(); 
@@ -218,7 +218,7 @@ void Hybrid_astar_class::setup(
     turning_raius_ = 0.5;
     turning_angle_ = step_length_ / turning_raius_;
 
-    obstacle_threshold_value_ = 90;
+    obstacle_threshold_value_ = 65;
 
     grid_map_width_ = map_width_grid;   
     grid_map_height_ = map_height_grid; 
@@ -263,29 +263,29 @@ void Hybrid_astar_class::explore_one_node(std::array<double, 3> curr_pose, std::
         // check rs from this pose to goal
         RS_curve_finder_.setup(curr_pose, goal_pose_);
         RS_curve_finder_.search();
-        std::cout << "Found " << RS_curve_finder_.results_.size() << " possible rs paths " << std::endl;
+        // std::cout << "Found " << RS_curve_finder_.results_.size() << " possible rs paths " << std::endl;
         if( RS_curve_finder_.results_.size() >= 1){
             // int num_rs_path_to_check = std::min( int(RS_curve_finder_.results_.size()), 3 );
             int num_rs_path_to_check = int(RS_curve_finder_.results_.size())-1;
             int pci;
             for(pci=0; pci<=num_rs_path_to_check; pci++){
                 auto *rs_path = &RS_curve_finder_.results_[pci];
-                std::cout << "check rs path #" << pci  << "  " << rs_path->path_word  << std::endl;
+                // std::cout << "check rs path #" << pci  << "  " << rs_path->path_word  << std::endl;
                 
                 if (rs_path->path_steps.size()==0){
                     std::cout << "it's an empty path" << std::endl;
                     continue;
                 }
-                std::cout << "Not an empty path" << std::endl;
+                // std::cout << "Not an empty path" << std::endl;
                 bool this_rs_is_free_of_collision = true;
                 for(int pointi = 1; pointi<=rs_path->path_steps.size(); pointi++){
                     // std::array<double,3> fine_pose = {rs_path->path_steps[pointi].x,
                     //                                     rs_path->path_steps[pointi].y,
                     //                                     rs_path->path_steps[pointi].theta};
-                    std::cout << "+-+-+-path_steps: " << rs_path->path_steps[pointi][0] << " " << rs_path->path_steps[pointi][1] << std::endl;
+                    // std::cout << "+-+-+-path_steps: " << rs_path->path_steps[pointi][0] << " " << rs_path->path_steps[pointi][1] << std::endl;
                     std::array<int, 3> point_grid = helper_convert_fine_pose_to_grid(rs_path->path_steps[pointi], fine_to_grid_ratio_, angle_resolution_);
                     int point_1d_index = twoD_to_oneD(point_grid[0], point_grid[1], grid_map_width_, grid_map_height_);
-                    std::cout << "+-+-+-grid: " << point_grid[0] << " " << point_grid[1] << " " << point_1d_index << std::endl;
+                    // std::cout << "+-+-+-grid: " << point_grid[0] << " " << point_grid[1] << " " << point_1d_index << std::endl;
 
                     if ( std::abs(rs_path->path_steps[pointi][0] - rs_path->path_steps[pointi-1][0]) + 
                          std::abs(rs_path->path_steps[pointi][1] - rs_path->path_steps[pointi-1][1])  > 0.4  ){
@@ -293,7 +293,7 @@ void Hybrid_astar_class::explore_one_node(std::array<double, 3> curr_pose, std::
                          }
 
                     if( (*grid_map_)[ point_1d_index ] > obstacle_threshold_value_ ){
-                        std::cout << "rs path #" << pci << " collide" << std::endl;
+                        // std::cout << "rs path #" << pci << " collide" << std::endl;
                         usable_rs_found = false; 
                         this_rs_is_free_of_collision = false;
                         break;
@@ -325,7 +325,7 @@ void Hybrid_astar_class::explore_one_node(std::array<double, 3> curr_pose, std::
         }
     }
     counter_for_rs_search_ ++;
-    std::cout << "RS section done." << std::endl;
+    // std::cout << "RS section done." << std::endl;
 
     // cout << "explore_one_node:: " << all_grids_[curr_grid].fine_pose[0] << " " << all_grids_[curr_grid].fine_pose[1] << " "
     //  << all_grids_[curr_grid].fine_pose[2] << endl;
@@ -339,7 +339,7 @@ void Hybrid_astar_class::explore_one_node(std::array<double, 3> curr_pose, std::
         double nb_x = curr_pose[0] + dx;
         double nb_y = curr_pose[1] + dy;
 
-        cout << "explore_one_node:: " << nb_x << " " << nb_y << " " << curr_theta + mm[2] << endl;
+        // cout << "explore_one_node:: " << nb_x << " " << nb_y << " " << curr_theta + mm[2] << endl;
 
         int nb_x_grid = nb_x / fine_to_grid_ratio_;
         int nb_y_grid = nb_y / fine_to_grid_ratio_;
@@ -519,7 +519,7 @@ std::vector<std::array<int, 3>> Hybrid_astar_class::find_min_cost_nodes()
         }
     }
 
-    std::cout << "Hybrid_astar_class::find_min_cost_nodes  DONE. " << "min_cost  "  << min_cost << "  size:" << out.size() << std::endl;
+    // std::cout << "Hybrid_astar_class::find_min_cost_nodes  DONE. " << "min_cost  "  << min_cost << "  size:" << out.size() << std::endl;
 
     return out;
 }
@@ -537,7 +537,7 @@ void Hybrid_astar_class::explore_one_ite(std::vector<std::array<int, 3>> active_
 
     for (std::vector<std::array<int, 3>>::iterator it = active_nodes.begin(); it != active_nodes.end(); ++it)
     {
-        std::cout << "explore node: " << (*it)[0] << " " << (*it)[1] << " " << (*it)[2] << std::endl;
+        // std::cout << "explore node: " << (*it)[0] << " " << (*it)[1] << " " << (*it)[2] << std::endl;
         // auto fine_pose = all_grids_[*it].fine_pose;
         auto fine_pose = open_grids_[*it].fine_pose;
         explore_one_node(fine_pose, *it);
@@ -554,7 +554,7 @@ bool Hybrid_astar_class::search()
     int search_count = 0;
     while (!FLAG_reach_goal_)
     {
-        cout << "search_count " << search_count << endl;
+        // cout << "search_count " << search_count << endl;
 
         explore_one_ite( find_min_cost_nodes() );
         
